@@ -52,6 +52,7 @@ func main() {
 		NewBigCache,
 		NewFastCache,
 		NewSyncMap,
+		NewMutexMap,
 		NewKodingCache,
 		NewGcache,
 	}
