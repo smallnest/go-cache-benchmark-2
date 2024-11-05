@@ -51,7 +51,7 @@ func NewHotspot(max int) Generator {
 }
 
 func (g *Hotspot) Name() string {
-	return "hostspot(0.1, 0.9)"
+	return "hotspot(0.1, 0.9)"
 }
 
 func (g *Hotspot) Next() string {

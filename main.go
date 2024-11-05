@@ -1,7 +1,9 @@
 package main
 
 import (
+	"flag"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -10,9 +12,30 @@ type Benchmark struct {
 	N int
 }
 
+var (
+	concurrency = flag.Int("c", 4, "Number of concurrent workers")
+	cacheSize   = flag.Int("s", 100e3, "Cache size")
+	multiplier  = flag.Int("m", 100, "multiplier for number of keys")
+	genType     = flag.String("g", "zipfian", "zipfian, hotspot, uniform")
+)
+
+var genTypes = make(map[string]NewGeneratorFunc)
+
+func init() {
+	genTypes["zipfian"] = NewScrambledZipfian
+	genTypes["hotspot"] = NewHotspot
+	genTypes["uniform"] = NewUniform
+}
+
 func main() {
-	cacheSize := []int{1e3, 10e3, 100e3, 1e6}
-	multiplier := []int{10, 100, 1000}
+	flag.Parse()
+
+	// cacheSize := []int{1e3, 10e3, 100e3, 1e6}
+	// multiplier := []int{10, 100, 1000}
+
+	cacheSizes := []int{*cacheSize}
+	multipliers := []int{*multiplier}
+
 	newCache := []NewCacheFunc{
 		NewTinyLFU,
 		NewClockPro,
@@ -25,32 +48,37 @@ func main() {
 		NewS4LRU,
 		NewSLRU,
 		NewWTFCache,
-	}
-	newGen := []NewGeneratorFunc{
-		NewScrambledZipfian,
-		// NewHotspot,
-		// NewUniform,
+		NewFreeCache,
+		NewBigCache,
+		NewFastCache,
+		NewSyncMap,
+		NewKodingCache,
+		NewGcache,
 	}
 
 	var results []*BenchmarkResult
 
-	for _, newGen := range newGen {
-		for _, cacheSize := range cacheSize {
-			for _, multiplier := range multiplier {
-				numKey := cacheSize * multiplier
+	newGen := genTypes[*genType]
+	if newGen == nil {
+		newGen = NewScrambledZipfian
+	}
 
-				for _, newCache := range newCache {
-					result := run(newGen, cacheSize, numKey, newCache)
-					results = append(results, result)
-				}
+	for _, cacheSize := range cacheSizes {
+		for _, multiplier := range multipliers {
+			numKey := cacheSize * multiplier
 
-				if len(results) > 0 {
-					printResults(results)
-					results = results[:0]
-				}
+			for _, newCache := range newCache {
+				result := run(newGen, cacheSize, numKey, newCache)
+				results = append(results, result)
+			}
+
+			if len(results) > 0 {
+				printResults(results)
+				results = results[:0]
 			}
 		}
 	}
+
 }
 
 func run(newGen NewGeneratorFunc, cacheSize, numKey int, newCache NewCacheFunc) *BenchmarkResult {
@@ -65,22 +93,54 @@ func run(newGen NewGeneratorFunc, cacheSize, numKey int, newCache NewCacheFunc) 
 	defer cache.Close()
 
 	start := time.Now()
-	hits, misses := bench(b, cache)
+	hits, misses := 0, 0
+	if *concurrency <= 1 {
+		hits, misses = bench(b, cache)
+	} else {
+		hits, misses = bench_par(b, cache, 4)
+	}
+
 	dur := time.Since(start)
 
 	alloc2 := memAlloc()
 
 	return &BenchmarkResult{
-		GenName:   gen.Name(),
-		CacheName: cache.Name(),
-		CacheSize: cacheSize,
-		NumKey:    numKey,
+		GenName:     gen.Name(),
+		CacheName:   cache.Name(),
+		CacheSize:   cacheSize,
+		NumKey:      numKey,
+		Concurrency: *concurrency,
 
 		Hits:     hits,
 		Misses:   misses,
 		Duration: dur,
 		Bytes:    int64(alloc2) - int64(alloc1),
 	}
+}
+func bench_par(b *Benchmark, cache Cache, concurrency int) (hits, misses int) {
+	var wg sync.WaitGroup
+	wg.Add(concurrency)
+
+	for i := 0; i < concurrency; i++ {
+		go func() {
+			defer wg.Done()
+
+			n := b.N / concurrency
+			for i := 0; i < n; i++ {
+				value := b.Next()
+				if cache.Get(value) {
+					hits++
+				} else {
+					misses++
+					cache.Set(value)
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	return hits, misses
 }
 
 func bench(b *Benchmark, cache Cache) (hits, misses int) {

@@ -16,14 +16,23 @@ require (
 )
 
 require (
+	github.com/VictoriaMetrics/fastcache v1.12.2 // indirect
+	github.com/allegro/bigcache v1.2.1 // indirect
+	github.com/bluele/gcache v0.0.2 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
-	github.com/cespare/xxhash/v2 v2.1.2 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/coocood/freecache v1.2.4 // indirect
 	github.com/dgryski/go-metro v0.0.0-20200812162917-85c65e2d0165 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/koding/cache v0.0.0-20161222233015-e8a81b0b3f20 // indirect
 	github.com/magiconair/properties v1.8.0 // indirect
 	github.com/mattn/go-runewidth v0.0.10 // indirect
+	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021 // indirect
 	github.com/pingcap/errors v0.11.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/stretchr/testify v1.7.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
+	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
