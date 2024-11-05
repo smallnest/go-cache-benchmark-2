@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -27,6 +28,10 @@ func printResults(results []*BenchmarkResult) {
 	fmt.Printf("%s cache=%d keys=%d concurrency=%d\n\n", res.GenName, res.CacheSize, res.NumKey, res.Concurrency)
 
 	var data [][]string
+
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Duration.Microseconds() < results[j].Duration.Microseconds()
+	})
 
 	for _, res := range results {
 		hitRate := float64(res.Hits) / float64(res.Hits+res.Misses)
